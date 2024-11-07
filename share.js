@@ -62,13 +62,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const personalInfo = {
             fullName: formData.get('fullName'),
             email: formData.get('email'),
-            phone: formData.get('phone')
+            phone: formData.get('phone'),
+            
         };
+
+        // Generate a unique URL for the resume
+        const resumeURL = `https://${encodeURIComponent(personalInfo.fullName)}.vercel.app/resume`;
 
         // Generate resume preview with editable sections
         if (resumeOutput) {
             resumeOutput.innerHTML = `
-               
                 <div class="resume-content" contenteditable="false">
                     <h1>Personal Information</h1>
                     <h3>${personalInfo.fullName}</h3>
@@ -88,14 +91,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h1>Skills</h1>
                     <p>${formData.get('skills')?.toString().split(',').join(', ')}</p>
                 </div>
-                 <div class="resume-controls">
+                <div class="resume-controls">
                     <button id="editResume" class="edit-btn">Edit Resume</button>
                     <button id="saveResume" class="save-btn" style="display:none">Save Changes</button>
+                    <button id="downloadResume" class="download-btn">Download as PDF</button>
+                    <p>Share your resume: <a href="${resumeURL}" target="_blank">${resumeURL}</a></p>
                 </div>
             `;
 
             // Add edit/save functionality
             setupEditControls();
+
+            // Add download functionality
+            document.getElementById('downloadResume')?.addEventListener('click', () => {
+                downloadResumeAsPDF(personalInfo.fullName);
+            });
         }
     });
 });
@@ -126,7 +136,7 @@ function generateExperienceHTML(form) {
         return `
             <div class="experience-item">
                 <h3 class="position">${position.value} at ${company.value}</h3>
-                <p class="duration"${duration.value}</p>
+                <p class="duration">${duration.value}</p>
                 <p class="responsibilities">${responsibilities.value}</p>
             </div>
         `;
@@ -153,38 +163,13 @@ function setupEditControls() {
         editBtn.style.display = 'inline-block';
     });
 }
-// Function to generate a unique URL for the resume
-function generateUniqueURL(username) {
-    return `${username}.vercel.app/resume`;
-}
 
-// Function to create a shareable link and download button
-function createShareableLinkAndDownload(username) {
-    const uniqueURL = generateUniqueURL(username);
-    const shareableLink = document.createElement('a');
-    shareableLink.href = uniqueURL;
-    shareableLink.textContent = 'Share Resume';
-    shareableLink.target = '_blank';
-    shareableLink.className = 'share-link';
-
-    const downloadButton = document.createElement('button');
-    downloadButton.textContent = 'Download as PDF';
-    downloadButton.className = 'download-btn';
-    downloadButton.addEventListener('click', () => {
-        downloadResumeAsPDF(username);
-    });
-
-    const resumeControls = document.querySelector('.resume-controls');
-    resumeControls.appendChild(shareableLink);
-    resumeControls.appendChild(downloadButton);
-}
-
-// Function to download the resume as a PDF
-function downloadResumeAsPDF(username) {
+// Function to download resume as PDF
+function downloadResumeAsPDF(fullName) {
     const resumeContent = document.querySelector('.resume-content');
     const opt = {
         margin: 1,
-        filename: `${username}_resume.pdf`,
+        filename: `${fullName}_resume.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2 },
         jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
@@ -192,9 +177,4 @@ function downloadResumeAsPDF(username) {
     html2pdf().from(resumeContent).set(opt).save();
 }
 
-// Example usage
-document.addEventListener('DOMContentLoaded', () => {
-    const username = 'exampleUser'; // Replace with actual username
-    createShareableLinkAndDownload(username);
-});
 
