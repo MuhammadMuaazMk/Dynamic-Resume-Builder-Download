@@ -62,26 +62,50 @@ document.addEventListener('DOMContentLoaded', () => {
         const personalInfo = {
             fullName: formData.get('fullName'),
             email: formData.get('email'),
-            phone: formData.get('phone')
+            phone: formData.get('phone'),
+            
         };
 
-        // Generate resume preview
+        // Generate a unique URL for the resume
+        const resumeURL = `https://${encodeURIComponent(personalInfo.fullName)}.vercel.app/resume`;
+
+        // Generate resume preview with editable sections
         if (resumeOutput) {
             resumeOutput.innerHTML = `
-                <h1>Personal Information</h1>
-                <h3>${personalInfo.fullName}</h3>
-                <p>Email: ${personalInfo.email}</p>
-                <p>Phone: ${personalInfo.phone}</p>
-                
-                <h1>Education</h1>
-                ${generateEducationHTML(form)}
-                
-                <h1>Experience</h1>
-                ${generateExperienceHTML(form)}
-                
-                <h1>Skills</h1>
-                <p>${formData.get('skills')?.toString().split(',').join(', ')}</p>
+                <div class="resume-content" contenteditable="false">
+                    <h1>Personal Information</h1>
+                    <h3>${personalInfo.fullName}</h3>
+                    <p>Email: ${personalInfo.email}</p>
+                    <p>Phone: ${personalInfo.phone}</p>
+                    
+                    <h1>Education</h1>
+                    <div id="editableEducation">
+                        ${generateEducationHTML(form)}
+                    </div>
+                    
+                    <h1>Experience</h1>
+                    <div id="editableExperience">
+                        ${generateExperienceHTML(form)}
+                    </div>
+                    
+                    <h1>Skills</h1>
+                    <p>${formData.get('skills')?.toString().split(',').join(', ')}</p>
+                </div>
+                <div class="resume-controls">
+                    <button id="editResume" class="edit-btn">Edit Resume</button>
+                    <button id="saveResume" class="save-btn" style="display:none">Save Changes</button>
+                    <button id="downloadResume" class="download-btn">Download as PDF</button>
+                    <p>Share your resume: <a href="${resumeURL}" target="_blank">${resumeURL}</a></p>
+                </div>
             `;
+
+            // Add edit/save functionality
+            setupEditControls();
+
+            // Add download functionality
+            document.getElementById('downloadResume')?.addEventListener('click', () => {
+                downloadResumeAsPDF(personalInfo.fullName);
+            });
         }
     });
 });
@@ -95,9 +119,7 @@ function generateEducationHTML(form) {
         const gradYear = entry.querySelector('input[name="gradYear"]');
         return `
             <div class="education-item">
-     
-
-                <p><strong>${degree.value}</strong> - ${school.value} (${gradYear.value})</p>
+                <p>${degree.value} - ${school.value} (${gradYear.value})</p>
             </div>
         `;
     }).join('');
@@ -113,10 +135,46 @@ function generateExperienceHTML(form) {
         const responsibilities = entry.querySelector('textarea[name="responsibilities"]');
         return `
             <div class="experience-item">
-                <p><strong>${position.value}</strong> at ${company.value}</p>
-                <p>${duration.value}</p>
-                <p>${responsibilities.value}</p>
+                <h3 class="position">${position.value} at ${company.value}</h3>
+                <p class="duration">${duration.value}</p>
+                <p class="responsibilities">${responsibilities.value}</p>
             </div>
         `;
     }).join('');
 }
+
+// Setup edit controls
+function setupEditControls() {
+    const editBtn = document.getElementById('editResume');
+    const saveBtn = document.getElementById('saveResume');
+    const resumeContent = document.querySelector('.resume-content');
+
+    editBtn?.addEventListener('click', () => {
+        resumeContent.contentEditable = 'true';
+        resumeContent.style.backgroundColor = '#f8f9fa';
+        editBtn.style.display = 'none';
+        saveBtn.style.display = 'inline-block';
+    });
+
+    saveBtn?.addEventListener('click', () => {
+        resumeContent.contentEditable = 'false';
+        resumeContent.style.backgroundColor = 'transparent';
+        saveBtn.style.display = 'none';
+        editBtn.style.display = 'inline-block';
+    });
+}
+
+// Function to download resume as PDF
+function downloadResumeAsPDF(fullName) {
+    const resumeContent = document.querySelector('.resume-content');
+    const opt = {
+        margin: 1,
+        filename: `${fullName}_resume.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+    html2pdf().from(resumeContent).set(opt).save();
+}
+
+
